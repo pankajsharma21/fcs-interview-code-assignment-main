@@ -9,7 +9,7 @@ on:
 
 jobs:
   build-and-test:
-    name: Build, Test & Verify Coverage (>80%)
+    name: "Build, Test & Verify Coverage (>80%)"
     runs-on: ubuntu-latest
 
     defaults:
@@ -25,7 +25,8 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
-          cache: maven
+          cache: 'maven'
+          cache-dependency-path: 'java-assignment/pom.xml'
 
       - name: Grant Execute Permission to Maven Wrapper
         run: chmod +x mvnw
@@ -43,30 +44,7 @@ jobs:
             echo "### JaCoCo Code Coverage Summary" >> $GITHUB_STEP_SUMMARY
             echo "| Metric | Total | Missed | Covered | Coverage % |" >> $GITHUB_STEP_SUMMARY
             echo "| --- | --- | --- | --- | --- |" >> $GITHUB_STEP_SUMMARY
-            
-            python3 -c "
-import csv
-try:
-    with open('target/jacoco-report/jacoco.csv', mode='r') as f:
-        reader = csv.DictReader(f)
-        missed_lines = 0
-        covered_lines = 0
-        missed_instr = 0
-        covered_instr = 0
-        for row in reader:
-            missed_lines += int(row['LINE_MISSED'])
-            covered_lines += int(row['LINE_COVERED'])
-            missed_instr += int(row['INSTRUCTION_MISSED'])
-            covered_instr += int(row['INSTRUCTION_COVERED'])
-        total_lines = missed_lines + covered_lines
-        line_pct = (covered_lines / total_lines * 100) if total_lines > 0 else 0
-        total_instr = missed_instr + covered_instr
-        instr_pct = (covered_instr / total_instr * 100) if total_instr > 0 else 0
-        print(f'| Lines | {total_lines} | {missed_lines} | {covered_lines} | {line_pct:.2f}% |')
-        print(f'| Instructions | {total_instr} | {missed_instr} | {covered_instr} | {instr_pct:.2f}% |')
-except Exception as e:
-    print(f'| Error parsing report: {e} | | | | |')
-" >> $GITHUB_STEP_SUMMARY
+            python3 -c "import csv; f=open('target/jacoco-report/jacoco.csv'); r=list(csv.DictReader(f)); ml=sum(int(x['LINE_MISSED']) for x in r); cl=sum(int(x['LINE_COVERED']) for x in r); mi=sum(int(x['INSTRUCTION_MISSED']) for x in r); ci=sum(int(x['INSTRUCTION_COVERED']) for x in r); tl=ml+cl; ti=mi+ci; print(f'| Lines | {tl} | {ml} | {cl} | {cl/tl*100:.2f}% |'); print(f'| Instructions | {ti} | {mi} | {ci} | {ci/ti*100:.2f}% |')" >> $GITHUB_STEP_SUMMARY
           fi
 
       - name: Upload JaCoCo Coverage Report
