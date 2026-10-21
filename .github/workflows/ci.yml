@@ -1,0 +1,86 @@
+name: Java CI/CD Pipeline & Code Coverage
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    name: Build, Test & Verify Coverage (>80%)
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: java-assignment
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Grant Execute Permission to Maven Wrapper
+        run: chmod +x mvnw
+
+      - name: Run Tests and Enforce 80% Code Coverage
+        run: ./mvnw clean test jacoco:check
+
+      - name: Verify Package Build
+        run: ./mvnw package -DskipTests
+
+      - name: Publish Test Report & Coverage Summary
+        if: always()
+        run: |
+          if [ -f "target/jacoco-report/jacoco.csv" ]; then
+            echo "### JaCoCo Code Coverage Summary" >> $GITHUB_STEP_SUMMARY
+            echo "| Metric | Total | Missed | Covered | Coverage % |" >> $GITHUB_STEP_SUMMARY
+            echo "| --- | --- | --- | --- | --- |" >> $GITHUB_STEP_SUMMARY
+            
+            python3 -c "
+import csv
+try:
+    with open('target/jacoco-report/jacoco.csv', mode='r') as f:
+        reader = csv.DictReader(f)
+        missed_lines = 0
+        covered_lines = 0
+        missed_instr = 0
+        covered_instr = 0
+        for row in reader:
+            missed_lines += int(row['LINE_MISSED'])
+            covered_lines += int(row['LINE_COVERED'])
+            missed_instr += int(row['INSTRUCTION_MISSED'])
+            covered_instr += int(row['INSTRUCTION_COVERED'])
+        total_lines = missed_lines + covered_lines
+        line_pct = (covered_lines / total_lines * 100) if total_lines > 0 else 0
+        total_instr = missed_instr + covered_instr
+        instr_pct = (covered_instr / total_instr * 100) if total_instr > 0 else 0
+        print(f'| Lines | {total_lines} | {missed_lines} | {covered_lines} | {line_pct:.2f}% |')
+        print(f'| Instructions | {total_instr} | {missed_instr} | {covered_instr} | {instr_pct:.2f}% |')
+except Exception as e:
+    print(f'| Error parsing report: {e} | | | | |')
+" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Upload JaCoCo Coverage Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: jacoco-coverage-report
+          path: java-assignment/target/jacoco-report/
+          retention-days: 14
+
+      - name: Upload Surefire Test Reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: surefire-test-reports
+          path: java-assignment/target/surefire-reports/
+          retention-days: 14
