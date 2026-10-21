@@ -1,6 +1,6 @@
 # Fulfillment & Colocation Management Monolith
 
-[![Java CI/CD Pipeline & Code Coverage](https://github.com/gaurp/fcs-interview-code-assignment/actions/workflows/ci.yml/badge.svg)](https://github.com/gaurp/fcs-interview-code-assignment/actions)
+[![Java CI/CD Pipeline & Code Coverage](https://github.com/pankajsharma21/fcs-interview-code-assignment-main/actions/workflows/ci.yml/badge.svg)](https://github.com/pankajsharma21/fcs-interview-code-assignment-main/actions)
 ![Java Version](https://img.shields.io/badge/Java-17%20%7C%2021%20%7C%2025-blue.svg)
 ![Framework](https://img.shields.io/badge/Quarkus-3.13.3-red.svg)
 ![Coverage](https://img.shields.io/badge/Coverage-85.77%25%20(Line)-brightgreen.svg)
