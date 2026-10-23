@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>FulfillmentResource.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">java-code-assignment</a> &gt; <a href="index.source.html" class="el_package">com.fulfilment.application.monolith.fulfillment.adapters.restapi</a> &gt; <span class="el_source">FulfillmentResource.java</span></div><h1>FulfillmentResource.java</h1><pre class="source lang-java linenums">package com.fulfilment.application.monolith.fulfillment.adapters.restapi;
+
+import com.fulfilment.application.monolith.fulfillment.domain.models.FulfillmentAssociation;
+import com.fulfilment.application.monolith.fulfillment.domain.ports.AssociateProductOperation;
+import com.fulfilment.application.monolith.fulfillment.domain.ports.DisassociateProductOperation;
+import com.fulfilment.application.monolith.fulfillment.domain.ports.GetFulfillmentOperation;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.WebApplicationException;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
+import java.util.List;
+
+/**
+ * REST API adapter exposing Fulfillment endpoints following Hexagonal Architecture.
+ * Delegates incoming requests to domain ports.
+ */
+@Path(&quot;/fulfillment&quot;)
+@ApplicationScoped
+@Produces(MediaType.APPLICATION_JSON)
+@Consumes(MediaType.APPLICATION_JSON)
+public class FulfillmentResource {
+
+  private final AssociateProductOperation associateOperation;
+  private final DisassociateProductOperation disassociateOperation;
+  private final GetFulfillmentOperation getFulfillmentOperation;
+
+  @Inject
+  public FulfillmentResource(
+      AssociateProductOperation associateOperation,
+      DisassociateProductOperation disassociateOperation,
+<span class="fc" id="L38">      GetFulfillmentOperation getFulfillmentOperation) {</span>
+<span class="fc" id="L39">    this.associateOperation = associateOperation;</span>
+<span class="fc" id="L40">    this.disassociateOperation = disassociateOperation;</span>
+<span class="fc" id="L41">    this.getFulfillmentOperation = getFulfillmentOperation;</span>
+<span class="fc" id="L42">  }</span>
+
+  @POST
+  @Path(&quot;/associate&quot;)
+  public Response associate(FulfillmentRequest request) {
+<span class="pc bpc" id="L47" title="1 of 2 branches missed.">    if (request == null) {</span>
+<span class="nc" id="L48">      throw new WebApplicationException(</span>
+<span class="nc" id="L49">          Response.status(400).entity(&quot;Request body is required&quot;).build());</span>
+    }
+
+    try {
+<span class="fc" id="L53">      FulfillmentAssociation association =</span>
+<span class="fc" id="L54">          associateOperation.associate(</span>
+              request.storeId, request.productId, request.warehouseBusinessUnitCode);
+<span class="fc" id="L56">      return Response.status(Response.Status.CREATED).entity(association).build();</span>
+<span class="fc" id="L57">    } catch (WebApplicationException e) {</span>
+<span class="fc" id="L58">      throw e;</span>
+<span class="nc" id="L59">    } catch (IllegalArgumentException | IllegalStateException e) {</span>
+<span class="nc" id="L60">      throw new WebApplicationException(Response.status(400).entity(e.getMessage()).build());</span>
+    }
+  }
+
+  @POST
+  @Path(&quot;/disassociate&quot;)
+  public Response disassociate(FulfillmentRequest request) {
+<span class="pc bpc" id="L67" title="1 of 2 branches missed.">    if (request == null) {</span>
+<span class="nc" id="L68">      throw new WebApplicationException(</span>
+<span class="nc" id="L69">          Response.status(400).entity(&quot;Request body is required&quot;).build());</span>
+    }
+
+<span class="fc" id="L72">    boolean removed =</span>
+<span class="fc" id="L73">        disassociateOperation.disassociate(</span>
+            request.storeId, request.productId, request.warehouseBusinessUnitCode);
+<span class="fc bfc" id="L75" title="All 2 branches covered.">    if (!removed) {</span>
+<span class="fc" id="L76">      return Response.status(Response.Status.NOT_FOUND).build();</span>
+    }
+<span class="fc" id="L78">    return Response.status(Response.Status.NO_CONTENT).build();</span>
+  }
+
+  @GET
+  @Path(&quot;/store/{storeId}&quot;)
+  public List&lt;FulfillmentAssociation&gt; getByStore(@PathParam(&quot;storeId&quot;) Long storeId) {
+<span class="fc" id="L84">    return getFulfillmentOperation.getByStore(storeId);</span>
+  }
+
+  @GET
+  @Path(&quot;/warehouse/{businessUnitCode}&quot;)
+  public List&lt;FulfillmentAssociation&gt; getByWarehouse(
+      @PathParam(&quot;businessUnitCode&quot;) String businessUnitCode) {
+<span class="fc" id="L91">    return getFulfillmentOperation.getByWarehouse(businessUnitCode);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

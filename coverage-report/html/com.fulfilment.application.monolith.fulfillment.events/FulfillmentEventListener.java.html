@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>FulfillmentEventListener.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">java-code-assignment</a> &gt; <a href="index.source.html" class="el_package">com.fulfilment.application.monolith.fulfillment.events</a> &gt; <span class="el_source">FulfillmentEventListener.java</span></div><h1>FulfillmentEventListener.java</h1><pre class="source lang-java linenums">package com.fulfilment.application.monolith.fulfillment.events;
+
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.event.Observes;
+import jakarta.enterprise.event.TransactionPhase;
+import org.jboss.logging.Logger;
+
+/**
+ * Transactional event listener for Fulfillment lifecycle events.
+ * Listens AFTER_SUCCESS to ensure events are processed strictly post-commit.
+ */
+@ApplicationScoped
+<span class="fc" id="L13">public class FulfillmentEventListener {</span>
+
+<span class="fc" id="L15">  private static final Logger LOG = Logger.getLogger(FulfillmentEventListener.class);</span>
+
+  public void onAssociated(
+      @Observes(during = TransactionPhase.AFTER_SUCCESS) FulfillmentAssociatedEvent event) {
+<span class="pc bpc" id="L19" title="2 of 4 branches missed.">    if (event != null &amp;&amp; event.association() != null) {</span>
+<span class="fc" id="L20">      LOG.infof(</span>
+          &quot;Fulfillment association committed: storeId=%d, productId=%d, warehouse=%s&quot;,
+<span class="fc" id="L22">          event.association().storeId,</span>
+<span class="fc" id="L23">          event.association().productId,</span>
+<span class="fc" id="L24">          event.association().warehouseBusinessUnitCode);</span>
+    }
+<span class="fc" id="L26">  }</span>
+
+  public void onDisassociated(
+      @Observes(during = TransactionPhase.AFTER_SUCCESS) FulfillmentDisassociatedEvent event) {
+<span class="pc bpc" id="L30" title="1 of 2 branches missed.">    if (event != null) {</span>
+<span class="fc" id="L31">      LOG.infof(</span>
+          &quot;Fulfillment disassociation committed: storeId=%d, productId=%d, warehouse=%s&quot;,
+<span class="fc" id="L33">          event.storeId(), event.productId(), event.warehouseBusinessUnitCode());</span>
+    }
+<span class="fc" id="L35">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -4,6 +4,7 @@ import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 
+import com.fulfilment.application.monolith.fulfillment.adapters.restapi.FulfillmentRequest;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.http.ContentType;
 import org.junit.jupiter.api.MethodOrderer;
@@ -27,7 +28,13 @@ public class FulfillmentResourceTest {
         .post("/fulfillment/associate")
         .then()
         .statusCode(201)
-        .body("storeId", equalTo(1), "productId", equalTo(1), "warehouseBusinessUnitCode", equalTo("MWH.001"));
+        .body(
+            "storeId",
+            equalTo(1),
+            "productId",
+            equalTo(1),
+            "warehouseBusinessUnitCode",
+            equalTo("MWH.001"));
   }
 
   @Test

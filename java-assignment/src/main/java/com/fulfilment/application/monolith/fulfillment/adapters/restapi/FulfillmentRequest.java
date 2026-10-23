@@ -1,5 +1,8 @@
-package com.fulfilment.application.monolith.fulfillment;
+package com.fulfilment.application.monolith.fulfillment.adapters.restapi;
 
+/**
+ * Data Transfer Object for fulfillment association requests.
+ */
 public class FulfillmentRequest {
 
   public Long storeId;

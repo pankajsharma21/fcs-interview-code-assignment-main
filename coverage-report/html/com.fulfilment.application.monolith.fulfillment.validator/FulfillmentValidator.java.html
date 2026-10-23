@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>FulfillmentValidator.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">java-code-assignment</a> &gt; <a href="index.source.html" class="el_package">com.fulfilment.application.monolith.fulfillment.validator</a> &gt; <span class="el_source">FulfillmentValidator.java</span></div><h1>FulfillmentValidator.java</h1><pre class="source lang-java linenums">package com.fulfilment.application.monolith.fulfillment.validator;
+
+import com.fulfilment.application.monolith.fulfillment.domain.models.FulfillmentAssociation;
+import com.fulfilment.application.monolith.warehouses.domain.models.Warehouse;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.ws.rs.WebApplicationException;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+/**
+ * Dedicated validator for Fulfillment operations and multi-entity supply chain constraints.
+ * Separates validation logic from use cases and persistence adapters.
+ */
+@ApplicationScoped
+<span class="fc" id="L16">public class FulfillmentValidator {</span>
+
+  /**
+   * Validates non-null and non-blank input parameters.
+   */
+  public void validateInput(Long storeId, Long productId, String warehouseBusinessUnitCode) {
+<span class="pc bpc" id="L22" title="1 of 2 branches missed.">    if (storeId == null) {</span>
+<span class="nc" id="L23">      throw new IllegalArgumentException(&quot;storeId cannot be null.&quot;);</span>
+    }
+<span class="pc bpc" id="L25" title="1 of 2 branches missed.">    if (productId == null) {</span>
+<span class="nc" id="L26">      throw new IllegalArgumentException(&quot;productId cannot be null.&quot;);</span>
+    }
+<span class="pc bpc" id="L28" title="2 of 4 branches missed.">    if (warehouseBusinessUnitCode == null || warehouseBusinessUnitCode.isBlank()) {</span>
+<span class="nc" id="L29">      throw new IllegalArgumentException(&quot;warehouseBusinessUnitCode cannot be blank.&quot;);</span>
+    }
+<span class="fc" id="L31">  }</span>
+
+  /**
+   * Validates that Store, Product, and Warehouse entities exist and are active.
+   */
+  public void validateEntitiesExist(
+      boolean storeExists,
+      Long storeId,
+      boolean productExists,
+      Long productId,
+      Warehouse warehouse,
+      String warehouseBusinessUnitCode) {
+<span class="fc bfc" id="L43" title="All 2 branches covered.">    if (!storeExists) {</span>
+<span class="fc" id="L44">      throw new WebApplicationException(&quot;Store with id &quot; + storeId + &quot; not found.&quot;, 404);</span>
+    }
+<span class="fc bfc" id="L46" title="All 2 branches covered.">    if (!productExists) {</span>
+<span class="fc" id="L47">      throw new WebApplicationException(&quot;Product with id &quot; + productId + &quot; not found.&quot;, 404);</span>
+    }
+<span class="fc bfc" id="L49" title="All 2 branches covered.">    if (warehouse == null) {</span>
+<span class="fc" id="L50">      throw new WebApplicationException(</span>
+          &quot;Active warehouse with businessUnitCode &quot; + warehouseBusinessUnitCode + &quot; not found.&quot;,
+          404);
+    }
+<span class="fc" id="L54">  }</span>
+
+  /**
+   * Validates all 3 fulfillment supply chain constraints atomically:
+   * 1. Max 2 warehouses per product per store.
+   * 2. Max 3 warehouses per store.
+   * 3. Max 5 product types per warehouse.
+   */
+  public void validateConstraints(
+      Long storeId,
+      Long productId,
+      String warehouseBusinessUnitCode,
+      List&lt;FulfillmentAssociation&gt; productStoreAssocs,
+      List&lt;FulfillmentAssociation&gt; storeAssocs,
+      List&lt;FulfillmentAssociation&gt; warehouseAssocs) {
+
+    // Constraint 1: Each Product can be fulfilled by a maximum of 2 different Warehouses per Store
+    Set&lt;String&gt; distinctWarehousesForProductInStore =
+<span class="pc bpc" id="L72" title="1 of 2 branches missed.">        productStoreAssocs == null</span>
+<span class="nc" id="L73">            ? Set.of()</span>
+<span class="fc" id="L74">            : productStoreAssocs.stream()</span>
+<span class="fc" id="L75">                .map(a -&gt; a.warehouseBusinessUnitCode)</span>
+<span class="fc" id="L76">                .collect(Collectors.toSet());</span>
+
+<span class="pc bpc" id="L78" title="1 of 2 branches missed.">    if (!distinctWarehousesForProductInStore.contains(warehouseBusinessUnitCode)</span>
+<span class="fc bfc" id="L79" title="All 2 branches covered.">        &amp;&amp; distinctWarehousesForProductInStore.size() &gt;= 2) {</span>
+<span class="fc" id="L80">      throw new IllegalStateException(</span>
+          &quot;Constraint violation: Product &quot;
+              + productId
+              + &quot; is already fulfilled by 2 different warehouses for store &quot;
+              + storeId);
+    }
+
+    // Constraint 2: Each Store can be fulfilled by a maximum of 3 different Warehouses
+    Set&lt;String&gt; distinctWarehousesForStore =
+<span class="pc bpc" id="L89" title="1 of 2 branches missed.">        storeAssocs == null</span>
+<span class="nc" id="L90">            ? Set.of()</span>
+<span class="fc" id="L91">            : storeAssocs.stream()</span>
+<span class="fc" id="L92">                .map(a -&gt; a.warehouseBusinessUnitCode)</span>
+<span class="fc" id="L93">                .collect(Collectors.toSet());</span>
+
+<span class="fc bfc" id="L95" title="All 2 branches covered.">    if (!distinctWarehousesForStore.contains(warehouseBusinessUnitCode)</span>
+<span class="fc bfc" id="L96" title="All 2 branches covered.">        &amp;&amp; distinctWarehousesForStore.size() &gt;= 3) {</span>
+<span class="fc" id="L97">      throw new IllegalStateException(</span>
+          &quot;Constraint violation: Store &quot;
+              + storeId
+              + &quot; is already fulfilled by 3 different warehouses (&quot;
+              + distinctWarehousesForStore
+              + &quot;)&quot;);
+    }
+
+    // Constraint 3: Each Warehouse can store maximally 5 types of Products
+    Set&lt;Long&gt; distinctProductsInWarehouse =
+<span class="pc bpc" id="L107" title="1 of 2 branches missed.">        warehouseAssocs == null</span>
+<span class="nc" id="L108">            ? Set.of()</span>
+<span class="fc" id="L109">            : warehouseAssocs.stream().map(a -&gt; a.productId).collect(Collectors.toSet());</span>
+
+<span class="pc bpc" id="L111" title="1 of 2 branches missed.">    if (!distinctProductsInWarehouse.contains(productId)</span>
+<span class="fc bfc" id="L112" title="All 2 branches covered.">        &amp;&amp; distinctProductsInWarehouse.size() &gt;= 5) {</span>
+<span class="fc" id="L113">      throw new IllegalStateException(</span>
+          &quot;Constraint violation: Warehouse &quot;
+              + warehouseBusinessUnitCode
+              + &quot; can maximally store 5 types of products (already has &quot;
+<span class="fc" id="L117">              + distinctProductsInWarehouse.size()</span>
+              + &quot;)&quot;);
+    }
+<span class="fc" id="L120">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

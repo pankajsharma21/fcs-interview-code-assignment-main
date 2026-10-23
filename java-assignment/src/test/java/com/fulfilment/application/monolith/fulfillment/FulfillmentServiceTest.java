@@ -5,6 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.fulfilment.application.monolith.fulfillment.domain.models.FulfillmentAssociation;
+import com.fulfilment.application.monolith.fulfillment.domain.ports.FulfillmentStore;
 import com.fulfilment.application.monolith.warehouses.domain.models.Warehouse;
 import com.fulfilment.application.monolith.warehouses.domain.ports.WarehouseStore;
 import io.quarkus.test.junit.QuarkusTest;
@@ -19,7 +21,7 @@ import org.junit.jupiter.api.Test;
 public class FulfillmentServiceTest {
 
   @Inject FulfillmentService fulfillmentService;
-  @Inject FulfillmentAssociationRepository repository;
+  @Inject FulfillmentStore repository;
 
   @BeforeEach
   @Transactional

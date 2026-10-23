@@ -1,0 +1,217 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>WarehouseValidator.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">java-code-assignment</a> &gt; <a href="index.source.html" class="el_package">com.fulfilment.application.monolith.warehouses.domain.validator</a> &gt; <span class="el_source">WarehouseValidator.java</span></div><h1>WarehouseValidator.java</h1><pre class="source lang-java linenums">package com.fulfilment.application.monolith.warehouses.domain.validator;
+
+import com.fulfilment.application.monolith.warehouses.domain.models.Location;
+import com.fulfilment.application.monolith.warehouses.domain.models.Warehouse;
+import jakarta.enterprise.context.ApplicationScoped;
+import java.util.List;
+import java.util.Objects;
+
+/**
+ * Dedicated domain validator for Warehouse operations.
+ * Separates validation logic from use cases, enforcing domain invariants,
+ * business unit rules, capacity constraints, location limits, and replacement rules.
+ */
+@ApplicationScoped
+<span class="fc" id="L15">public class WarehouseValidator {</span>
+
+  /**
+   * Validates warehouse payload and domain constraints for creation.
+   *
+   * @param warehouse the warehouse to create
+   * @param existingWithSameBu existing warehouse with same BU code (if any)
+   * @param location the resolved location
+   * @param activeInLocation list of currently active warehouses at this location
+   */
+  public void validateForCreation(
+      Warehouse warehouse,
+      Warehouse existingWithSameBu,
+      Location location,
+      List&lt;Warehouse&gt; activeInLocation) {
+
+<span class="pc bpc" id="L31" title="1 of 2 branches missed.">    if (warehouse == null) {</span>
+<span class="nc" id="L32">      throw new IllegalArgumentException(&quot;Warehouse data cannot be null.&quot;);</span>
+    }
+
+<span class="pc bpc" id="L35" title="2 of 4 branches missed.">    if (warehouse.businessUnitCode == null || warehouse.businessUnitCode.isBlank()) {</span>
+<span class="nc" id="L36">      throw new IllegalArgumentException(&quot;Business unit code is required.&quot;);</span>
+    }
+
+<span class="fc bfc" id="L39" title="All 2 branches covered.">    if (existingWithSameBu != null) {</span>
+<span class="fc" id="L40">      throw new IllegalArgumentException(</span>
+          &quot;Warehouse with business unit code &quot; + warehouse.businessUnitCode + &quot; already exists.&quot;);
+    }
+
+<span class="pc bpc" id="L44" title="2 of 4 branches missed.">    if (warehouse.location == null || warehouse.location.isBlank()) {</span>
+<span class="nc" id="L45">      throw new IllegalArgumentException(&quot;Location is required.&quot;);</span>
+    }
+
+<span class="fc bfc" id="L48" title="All 2 branches covered.">    if (location == null) {</span>
+<span class="fc" id="L49">      throw new IllegalArgumentException(</span>
+          &quot;Location &quot; + warehouse.location + &quot; is invalid or does not exist.&quot;);
+    }
+
+<span class="pc bpc" id="L53" title="2 of 4 branches missed.">    if (activeInLocation != null &amp;&amp; activeInLocation.size() &gt;= location.maxNumberOfWarehouses) {</span>
+<span class="nc" id="L54">      throw new IllegalStateException(</span>
+          &quot;Maximum number of warehouses (&quot;
+              + location.maxNumberOfWarehouses
+              + &quot;) reached for location &quot;
+              + location.identification);
+    }
+
+<span class="fc" id="L61">    validateCapacityAndStock(warehouse);</span>
+
+<span class="fc bfc" id="L63" title="All 2 branches covered.">    if (warehouse.capacity &gt; location.maxCapacity) {</span>
+<span class="fc" id="L64">      throw new IllegalArgumentException(</span>
+          &quot;Warehouse capacity (&quot;
+              + warehouse.capacity
+              + &quot;) exceeds location max capacity (&quot;
+              + location.maxCapacity
+              + &quot;).&quot;);
+    }
+
+    int currentTotalCapacity =
+<span class="pc bpc" id="L73" title="1 of 2 branches missed.">        activeInLocation == null</span>
+<span class="nc" id="L74">            ? 0</span>
+<span class="pc bnc" id="L75" title="All 2 branches missed.">            : activeInLocation.stream().mapToInt(w -&gt; w.capacity != null ? w.capacity : 0).sum();</span>
+
+<span class="pc bpc" id="L77" title="1 of 2 branches missed.">    if (currentTotalCapacity + warehouse.capacity &gt; location.maxCapacity) {</span>
+<span class="nc" id="L78">      throw new IllegalArgumentException(</span>
+          &quot;Total warehouse capacity at location (&quot;
+<span class="nc" id="L80">              + (currentTotalCapacity + warehouse.capacity)</span>
+              + &quot;) exceeds location max capacity (&quot;
+              + location.maxCapacity
+              + &quot;).&quot;);
+    }
+<span class="fc" id="L85">  }</span>
+
+  /**
+   * Validates warehouse payload and domain constraints for replacement.
+   *
+   * @param newWarehouse the new warehouse payload
+   * @param current the existing warehouse being replaced
+   * @param newLocation the resolved location for the replacement
+   * @param activeInNewLocation list of currently active warehouses in the target location
+   */
+  public void validateForReplacement(
+      Warehouse newWarehouse,
+      Warehouse current,
+      Location newLocation,
+      List&lt;Warehouse&gt; activeInNewLocation) {
+
+<span class="pc bpc" id="L101" title="1 of 2 branches missed.">    if (newWarehouse == null) {</span>
+<span class="nc" id="L102">      throw new IllegalArgumentException(&quot;Replacement warehouse data cannot be null.&quot;);</span>
+    }
+
+<span class="pc bpc" id="L105" title="2 of 4 branches missed.">    if (newWarehouse.businessUnitCode == null || newWarehouse.businessUnitCode.isBlank()) {</span>
+<span class="nc" id="L106">      throw new IllegalArgumentException(&quot;Business unit code is required.&quot;);</span>
+    }
+
+<span class="pc bpc" id="L109" title="1 of 2 branches missed.">    if (current == null) {</span>
+<span class="nc" id="L110">      throw new IllegalArgumentException(</span>
+          &quot;Active warehouse with business unit code &quot;
+              + newWarehouse.businessUnitCode
+              + &quot; not found to replace.&quot;);
+    }
+
+<span class="fc bfc" id="L116" title="All 2 branches covered.">    if (!Objects.equals(newWarehouse.stock, current.stock)) {</span>
+<span class="fc" id="L117">      throw new IllegalArgumentException(</span>
+          &quot;Stock of the new warehouse (&quot;
+              + newWarehouse.stock
+              + &quot;) does not match stock of previous warehouse (&quot;
+              + current.stock
+              + &quot;).&quot;);
+    }
+
+<span class="pc bpc" id="L125" title="2 of 4 branches missed.">    if (newWarehouse.capacity == null || newWarehouse.capacity &lt; current.stock) {</span>
+<span class="nc" id="L126">      throw new IllegalArgumentException(</span>
+          &quot;New warehouse capacity (&quot;
+              + newWarehouse.capacity
+              + &quot;) cannot accommodate the stock of the warehouse being replaced (&quot;
+              + current.stock
+              + &quot;).&quot;);
+    }
+
+<span class="pc bpc" id="L134" title="2 of 4 branches missed.">    if (newWarehouse.location == null || newWarehouse.location.isBlank()) {</span>
+<span class="nc" id="L135">      throw new IllegalArgumentException(&quot;New warehouse location is required.&quot;);</span>
+    }
+
+<span class="fc bfc" id="L138" title="All 2 branches covered.">    if (newLocation == null) {</span>
+<span class="fc" id="L139">      throw new IllegalArgumentException(</span>
+          &quot;Location &quot; + newWarehouse.location + &quot; is invalid or does not exist.&quot;);
+    }
+
+<span class="fc bfc" id="L143" title="All 2 branches covered.">    if (newWarehouse.capacity &gt; newLocation.maxCapacity) {</span>
+<span class="fc" id="L144">      throw new IllegalArgumentException(</span>
+          &quot;Warehouse capacity (&quot;
+              + newWarehouse.capacity
+              + &quot;) exceeds location max capacity (&quot;
+              + newLocation.maxCapacity
+              + &quot;).&quot;);
+    }
+
+<span class="fc" id="L152">    boolean isSameLocation = Objects.equals(current.location, newWarehouse.location);</span>
+
+<span class="pc bpc" id="L154" title="1 of 2 branches missed.">    if (!isSameLocation) {</span>
+<span class="nc bnc" id="L155" title="All 2 branches missed.">      if (activeInNewLocation != null</span>
+<span class="nc bnc" id="L156" title="All 2 branches missed.">          &amp;&amp; activeInNewLocation.size() &gt;= newLocation.maxNumberOfWarehouses) {</span>
+<span class="nc" id="L157">        throw new IllegalStateException(</span>
+            &quot;Maximum number of warehouses (&quot;
+                + newLocation.maxNumberOfWarehouses
+                + &quot;) reached for location &quot;
+                + newLocation.identification);
+      }
+
+      int targetCapacity =
+<span class="nc bnc" id="L165" title="All 2 branches missed.">          activeInNewLocation == null</span>
+<span class="nc" id="L166">              ? 0</span>
+<span class="nc bnc" id="L167" title="All 2 branches missed.">              : activeInNewLocation.stream().mapToInt(w -&gt; w.capacity != null ? w.capacity : 0).sum();</span>
+
+<span class="nc bnc" id="L169" title="All 2 branches missed.">      if (targetCapacity + newWarehouse.capacity &gt; newLocation.maxCapacity) {</span>
+<span class="nc" id="L170">        throw new IllegalArgumentException(</span>
+            &quot;Total warehouse capacity at location (&quot;
+<span class="nc" id="L172">                + (targetCapacity + newWarehouse.capacity)</span>
+                + &quot;) exceeds location max capacity (&quot;
+                + newLocation.maxCapacity
+                + &quot;).&quot;);
+      }
+<span class="nc" id="L177">    } else {</span>
+      int otherWarehousesCapacity =
+<span class="pc bpc" id="L179" title="1 of 2 branches missed.">          activeInNewLocation == null</span>
+<span class="nc" id="L180">              ? 0</span>
+<span class="fc" id="L181">              : activeInNewLocation.stream()</span>
+<span class="pc bpc" id="L182" title="1 of 2 branches missed.">                  .filter(w -&gt; !Objects.equals(w.businessUnitCode, current.businessUnitCode))</span>
+<span class="pc bnc" id="L183" title="All 2 branches missed.">                  .mapToInt(w -&gt; w.capacity != null ? w.capacity : 0)</span>
+<span class="fc" id="L184">                  .sum();</span>
+
+<span class="pc bpc" id="L186" title="1 of 2 branches missed.">      if (otherWarehousesCapacity + newWarehouse.capacity &gt; newLocation.maxCapacity) {</span>
+<span class="nc" id="L187">        throw new IllegalArgumentException(</span>
+            &quot;Warehouse capacity (&quot;
+                + newWarehouse.capacity
+                + &quot;) exceeds location max capacity (&quot;
+                + newLocation.maxCapacity
+                + &quot;).&quot;);
+      }
+    }
+<span class="fc" id="L195">  }</span>
+
+  /**
+   * Validates capacity and stock attributes.
+   */
+  public void validateCapacityAndStock(Warehouse warehouse) {
+<span class="pc bpc" id="L201" title="2 of 4 branches missed.">    if (warehouse.capacity == null || warehouse.capacity &lt;= 0) {</span>
+<span class="nc" id="L202">      throw new IllegalArgumentException(&quot;Capacity must be greater than zero.&quot;);</span>
+    }
+<span class="pc bpc" id="L204" title="2 of 4 branches missed.">    if (warehouse.stock == null || warehouse.stock &lt; 0) {</span>
+<span class="nc" id="L205">      throw new IllegalArgumentException(&quot;Stock cannot be negative.&quot;);</span>
+    }
+<span class="fc bfc" id="L207" title="All 2 branches covered.">    if (warehouse.stock &gt; warehouse.capacity) {</span>
+<span class="fc" id="L208">      throw new IllegalArgumentException(</span>
+          &quot;Warehouse capacity (&quot;
+              + warehouse.capacity
+              + &quot;) cannot be less than stock (&quot;
+              + warehouse.stock
+              + &quot;).&quot;);
+    }
+<span class="fc" id="L215">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

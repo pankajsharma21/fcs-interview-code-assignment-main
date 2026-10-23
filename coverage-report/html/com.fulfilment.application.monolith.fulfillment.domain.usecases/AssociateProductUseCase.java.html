@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AssociateProductUseCase.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">java-code-assignment</a> &gt; <a href="index.source.html" class="el_package">com.fulfilment.application.monolith.fulfillment.domain.usecases</a> &gt; <span class="el_source">AssociateProductUseCase.java</span></div><h1>AssociateProductUseCase.java</h1><pre class="source lang-java linenums">package com.fulfilment.application.monolith.fulfillment.domain.usecases;
+
+import com.fulfilment.application.monolith.fulfillment.domain.models.FulfillmentAssociation;
+import com.fulfilment.application.monolith.fulfillment.domain.ports.AssociateProductOperation;
+import com.fulfilment.application.monolith.fulfillment.domain.ports.FulfillmentStore;
+import com.fulfilment.application.monolith.fulfillment.domain.ports.ProductResolver;
+import com.fulfilment.application.monolith.fulfillment.domain.ports.StoreResolver;
+import com.fulfilment.application.monolith.fulfillment.events.FulfillmentAssociatedEvent;
+import com.fulfilment.application.monolith.fulfillment.validator.FulfillmentValidator;
+import com.fulfilment.application.monolith.warehouses.domain.models.Warehouse;
+import com.fulfilment.application.monolith.warehouses.domain.ports.WarehouseStore;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.event.Event;
+import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
+import java.util.List;
+
+/**
+ * Domain use case implementing AssociateProductOperation.
+ * Coordinates input validation, entity checks via ports, multi-entity constraint enforcement,
+ * persistence, and transactional event publishing.
+ */
+@ApplicationScoped
+public class AssociateProductUseCase implements AssociateProductOperation {
+
+  private final FulfillmentStore fulfillmentStore;
+  private final WarehouseStore warehouseStore;
+  private final StoreResolver storeResolver;
+  private final ProductResolver productResolver;
+  private final FulfillmentValidator validator;
+  private final Event&lt;FulfillmentAssociatedEvent&gt; eventPublisher;
+
+  @Inject
+  public AssociateProductUseCase(
+      FulfillmentStore fulfillmentStore,
+      WarehouseStore warehouseStore,
+      StoreResolver storeResolver,
+      ProductResolver productResolver,
+      FulfillmentValidator validator,
+<span class="fc" id="L40">      Event&lt;FulfillmentAssociatedEvent&gt; eventPublisher) {</span>
+<span class="fc" id="L41">    this.fulfillmentStore = fulfillmentStore;</span>
+<span class="fc" id="L42">    this.warehouseStore = warehouseStore;</span>
+<span class="fc" id="L43">    this.storeResolver = storeResolver;</span>
+<span class="fc" id="L44">    this.productResolver = productResolver;</span>
+<span class="pc bpc" id="L45" title="1 of 2 branches missed.">    this.validator = validator != null ? validator : new FulfillmentValidator();</span>
+<span class="fc" id="L46">    this.eventPublisher = eventPublisher;</span>
+<span class="fc" id="L47">  }</span>
+
+  @Override
+  @Transactional
+  public FulfillmentAssociation associate(
+      Long storeId, Long productId, String warehouseBusinessUnitCode) {
+
+    // 1. Validate inputs
+<span class="fc" id="L55">    validator.validateInput(storeId, productId, warehouseBusinessUnitCode);</span>
+
+    // 2. Validate external entities exist via ports
+<span class="pc bpc" id="L58" title="1 of 4 branches missed.">    boolean storeExists = storeResolver != null &amp;&amp; storeResolver.existsById(storeId);</span>
+<span class="pc bpc" id="L59" title="1 of 4 branches missed.">    boolean productExists = productResolver != null &amp;&amp; productResolver.existsById(productId);</span>
+    Warehouse warehouse =
+<span class="pc bpc" id="L61" title="1 of 2 branches missed.">        warehouseStore != null</span>
+<span class="fc" id="L62">            ? warehouseStore.findByBusinessUnitCode(warehouseBusinessUnitCode)</span>
+<span class="pc" id="L63">            : null;</span>
+
+<span class="fc" id="L65">    validator.validateEntitiesExist(</span>
+        storeExists, storeId, productExists, productId, warehouse, warehouseBusinessUnitCode);
+
+    // 3. Return existing if already associated
+<span class="fc" id="L69">    FulfillmentAssociation existing =</span>
+<span class="fc" id="L70">        fulfillmentStore.findSpecific(storeId, productId, warehouseBusinessUnitCode);</span>
+<span class="pc bpc" id="L71" title="1 of 2 branches missed.">    if (existing != null) {</span>
+<span class="nc" id="L72">      return existing;</span>
+    }
+
+    // 4. Validate supply chain constraints atomically
+<span class="fc" id="L76">    List&lt;FulfillmentAssociation&gt; productStoreAssocs =</span>
+<span class="fc" id="L77">        fulfillmentStore.findByProductAndStore(productId, storeId);</span>
+<span class="fc" id="L78">    List&lt;FulfillmentAssociation&gt; storeAssocs = fulfillmentStore.findByStore(storeId);</span>
+<span class="fc" id="L79">    List&lt;FulfillmentAssociation&gt; warehouseAssocs =</span>
+<span class="fc" id="L80">        fulfillmentStore.findByWarehouse(warehouseBusinessUnitCode);</span>
+
+<span class="fc" id="L82">    validator.validateConstraints(</span>
+        storeId,
+        productId,
+        warehouseBusinessUnitCode,
+        productStoreAssocs,
+        storeAssocs,
+        warehouseAssocs);
+
+    // 5. Persist new association
+<span class="fc" id="L91">    FulfillmentAssociation newAssociation =</span>
+        new FulfillmentAssociation(storeId, productId, warehouseBusinessUnitCode);
+<span class="fc" id="L93">    FulfillmentAssociation persisted = fulfillmentStore.save(newAssociation);</span>
+
+    // 6. Publish transactional event
+<span class="pc bpc" id="L96" title="1 of 2 branches missed.">    if (eventPublisher != null) {</span>
+<span class="fc" id="L97">      eventPublisher.fire(new FulfillmentAssociatedEvent(persisted));</span>
+    }
+
+<span class="fc" id="L100">    return persisted;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

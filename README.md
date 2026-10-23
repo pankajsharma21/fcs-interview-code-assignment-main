@@ -3,202 +3,245 @@
 [![Java CI/CD Pipeline & Code Coverage](https://github.com/pankajsharma21/fcs-interview-code-assignment-main/actions/workflows/ci.yml/badge.svg)](https://github.com/pankajsharma21/fcs-interview-code-assignment-main/actions)
 ![Java Version](https://img.shields.io/badge/Java-17%20%7C%2021%20%7C%2025-blue.svg)
 ![Framework](https://img.shields.io/badge/Quarkus-3.13.3-red.svg)
-![Coverage](https://img.shields.io/badge/Coverage-85.77%25%20(Line)-brightgreen.svg)
-![Tests](https://img.shields.io/badge/Tests-94%20passed%2C%200%20failed-success.svg)
+![Coverage](https://img.shields.io/badge/Coverage-87.68%25%20(Line)-brightgreen.svg)
+![Tests](https://img.shields.io/badge/Tests-141%20passed%2C%200%20failed-success.svg)
+![Architecture](https://img.shields.io/badge/Architecture-Hexagonal%20%2F%20Clean-orange.svg)
 
-A high-performance Java/Quarkus application for managing Warehouses, Stores, Products, and geographical Locations with Clean Architecture, transactional integrity, and fulfillment unit routing rules.
-
----
-
-## Table of Contents
-1. [Overview & Completed Deliverables](#overview--completed-deliverables)
-2. [Architecture & Design Principles](#architecture--design-principles)
-3. [Prerequisites & Environment Setup](#prerequisites--environment-setup)
-4. [Building, Testing & Code Coverage](#building-testing--code-coverage)
-5. [CI/CD Pipeline](#cicd-pipeline)
-6. [API Documentation & Endpoints](#api-documentation--endpoints)
-7. [Case Study & Architectural Analysis](#case-study--architectural-analysis)
+A high-performance enterprise Java/Quarkus application for managing **Warehouses**, **Stores**, **Products**, **Geographical Locations**, and **Fulfillment Associations** adhering to **Hexagonal (Ports & Adapters) Architecture**, **CDI Transactional Event Consistency**, and strict multi-entity supply chain invariants.
 
 ---
 
-## Overview & Completed Deliverables
+## 📸 Application & Quality Gate Visuals
 
-All core requirements and bonus tasks have been fully implemented and verified:
+### 1. JaCoCo Code Coverage Dashboard (87.68% Line Coverage - Enforced > 80%)
+![JaCoCo Code Coverage Report](docs/screenshots/jacoco-coverage-report.png)
 
-| Component | Task | Status | Description |
-| :--- | :--- | :---: | :--- |
-| **Location** | Task 1 | `COMPLETED` | Implemented `resolveByIdentifier` in `LocationGateway` to resolve location metadata (max warehouses, max capacity) by city prefix. Full unit test coverage in `LocationGatewayTest`. |
-| **Store** | Task 2 | `COMPLETED` | Decoupled downstream `LegacyStoreManagerGateway` calls using Quarkus/CDI transaction-bound events (`@Observes(during = TransactionPhase.AFTER_SUCCESS)`). Legacy updates execute strictly after successful database commit. |
-| **Warehouse** | Task 3 | `COMPLETED` | Implemented Clean Architecture (Domain Models, Use Cases, Ports & Adapters) with full validation rules for **Create**, **Archive**, and **Replace** operations. OpenAPI contract implementation with proper REST status codes (200, 201, 204, 400, 404). |
-| **Fulfillment** | Task 4 (BONUS) | `COMPLETED` | Implemented Warehouse-to-Store product fulfillment associations with three core business constraints: max 2 warehouses per product per store, max 3 warehouses per store, max 5 product types per warehouse. Includes REST endpoints and full test suite. |
-| **Questions** | Architectural Review | `COMPLETED` | Comprehensive senior-level architectural analysis documented in [`QUESTIONS.md`](java-assignment/QUESTIONS.md) (and [`Question.md`](java-assignment/Question.md)). |
-| **Case Study** | Business & Technical Scenarios | `COMPLETED` | In-depth strategic and technical analyses covering all 5 scenarios documented in [`CASE_STUDY.md`](case-study/CASE_STUDY.md). |
-| **CI/CD** | Pipeline & Quality Gate | `COMPLETED` | GitHub Actions workflow (`.github/workflows/ci.yml`) enforcing automated test execution and **JaCoCo >80% line coverage gate**. |
+### 2. Maven Automated Test Suite Execution (141 Tests Passing, 0 Failures)
+![Test Suite Execution Terminal](docs/screenshots/test-execution-terminal.png)
+
+### 3. Interactive Swagger UI & OpenAPI Specification
+![Swagger UI REST Endpoints](docs/screenshots/swagger-ui-endpoints.png)
+
+### 4. Quarkus Dev UI Overview
+![Quarkus Dev UI](docs/screenshots/quarkus-dev-ui.png)
 
 ---
 
-## Architecture & Design Principles
+## 🏛️ System Architecture
+
+The application strictly implements **Hexagonal (Ports & Adapters) Architecture** across core business domains, establishing clear isolation between pure domain models, business validation invariants, use case orchestration, and framework/infrastructure adapters.
 
 ```
-┌────────────────────────────────────────────────────────────────────────┐
-│                        PRESENTATION / API LAYER                        │
-│   • WarehouseResourceImpl (OpenAPI Spec-First JAX-RS)                 │
-│   • StoreResource (JAX-RS + CDI Transaction-Bound Events)              │
-│   • ProductResource (JAX-RS + Panache Repository)                     │
-│   • FulfillmentResource (Bonus Association APIs)                      │
-└───────────────────────────────────┬────────────────────────────────────┘
-                                    │ Invokes
-                                    ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│                         DOMAIN & APPLICATION LAYER                     │
-│   • CreateWarehouseUseCase                                             │
-│   • ReplaceWarehouseUseCase                                            │
-│   • ArchiveWarehouseUseCase                                            │
-│   • FulfillmentService                                                 │
-│   • Pure Domain POJOs (Warehouse, Location, StoreCreatedEvent)         │
-│   • Ports / Interfaces (WarehouseStore, LocationGateway)               │
-└───────────────────────────────────┬────────────────────────────────────┘
-                                    │ Implements
-                                    ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│                     INFRASTRUCTURE & PERSISTENCE LAYER                 │
-│   • WarehouseRepository (Adapter implementing WarehouseStore)          │
-│   • DbWarehouse (JPA Panache Entity)                                   │
-│   • FulfillmentAssociationRepository (JPA Panache Repository)          │
-│   • StoreSyncListener (CDI AFTER_SUCCESS Event Consumer)               │
-└────────────────────────────────────────────────────────────────────────┘
+                                  ┌──────────────────────────────────────────────┐
+                                  │                REST API Layer                │
+                                  │      (WarehouseResourceImpl, StoreResource,  │
+                                  │         FulfillmentResource, Swagger UI)     │
+                                  └───────────────────────┬──────────────────────┘
+                                                          │
+                                                          ▼
+                                  ┌──────────────────────────────────────────────┐
+                                  │           Domain Inbound Ports (SPI)         │
+                                  │  (CreateWarehouseOperation, ReplaceWarehouse,│
+                                  │        AssociateProductOperation, etc.)      │
+                                  └───────────────────────┬──────────────────────┘
+                                                          │
+                                                          ▼
+        ┌─────────────────────────────────────────────────┴─────────────────────────────────────────────────┐
+        │                                       DOMAIN LAYER (PURE JAVA)                                     │
+        │                                                                                                   │
+        │   ┌────────────────────────┐      ┌─────────────────────────┐      ┌──────────────────────────┐   │
+        │   │       Use Cases        │      │   Dedicated Validators  │      │       Domain Models      │   │
+        │   │ (CreateWarehouseUseCase│───►  │  (WarehouseValidator,   │      │  (Warehouse, Location,   │   │
+        │   │  AssociateProductUseCase│      │   FulfillmentValidator) │      │   FulfillmentAssociation)│   │
+        │   └────────────────────────┘      └─────────────────────────┘      └──────────────────────────┘   │
+        │                │                                                                                  │
+        └────────────────┼──────────────────────────────────────────────────────────────────────────────────┘
+                         │
+                         ▼
+        ┌───────────────────────────────────────────┐      ┌────────────────────────────────────────────┐
+        │         Domain Outbound Ports (SPI)       │      │             Domain Events                  │
+        │  (WarehouseStore, FulfillmentStore,       │      │  (StoreCreatedEvent, StoreUpdatedEvent,    │
+        │   LocationResolver, StoreResolver, etc.)  │      │   FulfillmentAssociatedEvent)              │
+        └────────────────────┬──────────────────────┘      └─────────────────────┬──────────────────────┘
+                             │                                                   │
+                             ▼                                                   ▼
+        ┌───────────────────────────────────────────┐      ┌────────────────────────────────────────────┐
+        │        Infrastructure & Persistence       │      │      Transactional CDI Observers           │
+        │ (WarehouseRepository, Panache Entities,   │      │   (@Observes during AFTER_SUCCESS          │
+        │   FulfillmentRepository, PostgreSQL / H2) │      │   LegacyStoreManagerGateway Sync)          │
+        └───────────────────────────────────────────┘      └────────────────────────────────────────────┘
 ```
 
-### Key Architectural Highlights:
-1. **Ports & Adapters (Hexagonal Architecture) in `Warehouse`:**
-   - The domain use cases (`CreateWarehouseUseCase`, `ReplaceWarehouseUseCase`, `ArchiveWarehouseUseCase`) depend purely on domain POJOs and interface ports (`WarehouseStore`).
-   - Zero framework dependencies in domain business logic enables instantaneous, mock-driven unit testing.
-2. **Transaction Phase Observers in `Store`:**
-   - Instead of calling `LegacyStoreManagerGateway` directly within the HTTP request transaction (which risks notifying downstream systems even if the database transaction subsequently rolls back), we publish `StoreCreatedEvent` and `StoreUpdatedEvent`.
-   - The listener `StoreSyncListener` observes these events with `during = TransactionPhase.AFTER_SUCCESS`, guaranteeing that downstream legacy notifications occur only after a successful database commit.
-3. **Capacity & Stock Integrity Invariants:**
-   - Business Unit Code uniqueness enforcement.
-   - City location validation against known locations (`LocationGateway`).
-   - Maximum warehouse count per location constraint.
-   - Maximum capacity per location constraint (cumulative active capacity calculation).
-   - Stock matching and capacity accommodation during warehouse replacement.
+---
+
+## 📦 Key Refactoring & Architecture Highlights
+
+### 1. Hexagonal Architecture for Fulfillment (`com.fulfilment.application.monolith.fulfillment`)
+The fulfillment module has been structured cleanly following Hexagonal Architecture:
+* **`domain.models`**: Pure domain POJO (`FulfillmentAssociation`) free of ORM and framework annotations.
+* **`domain.ports`**:
+  * Inbound ports: `AssociateProductOperation`, `DisassociateProductOperation`, `GetFulfillmentOperation`.
+  * Outbound SPI ports: `FulfillmentStore`, `StoreResolver`, `ProductResolver`.
+* **`domain.usecases`**: Framework-independent use cases (`AssociateProductUseCase`, `DisassociateProductUseCase`, `GetFulfillmentUseCase`).
+* **`validator`**: Dedicated `FulfillmentValidator` isolating multi-entity supply chain constraints from persistence.
+* **`events`**: CDI transactional events (`FulfillmentAssociatedEvent`, `FulfillmentDisassociatedEvent`) and observer `FulfillmentEventListener`.
+* **`adapters.database`**: Persistence adapter `FulfillmentRepository` managing `DbFulfillmentAssociation` (Panache).
+* **`adapters.restapi`**: JAX-RS adapter `FulfillmentResource` and DTO `FulfillmentRequest`.
+* **`FulfillmentService`**: Lightweight application facade maintaining 100% backward compatibility.
+
+### 2. Dedicated Validation Logic Separation (`WarehouseValidator` & `FulfillmentValidator`)
+Validation rules have been completely separated from use cases into dedicated validator components:
+* **`WarehouseValidator`**:
+  * Enforces Business Unit Code uniqueness among active facilities.
+  * Validates location existence and max warehouse quotas.
+  * Validates single warehouse and cumulative location capacity quotas.
+  * Enforces stock-matching (`new.stock == old.stock`) and capacity accommodation during replacement.
+* **`FulfillmentValidator`**:
+  * Validates existence and active state of Store, Product, and Warehouse entities via ports.
+  * Enforces **Constraint 1**: A store can source a given product from a maximum of **2 warehouses**.
+  * Enforces **Constraint 2**: A store can be associated with a maximum of **3 unique warehouses**.
+  * Enforces **Constraint 3**: A single warehouse cannot hold more than **5 distinct product types**.
+
+### 3. Dual-Write Prevention in Store Synchronization
+* Synchronizing store mutations with the downstream legacy system (`LegacyStoreManagerGateway`) is completely decoupled from the database transaction.
+* Handled via CDI transactional observers:
+  ```java
+  public void onStoreCreated(@Observes(during = TransactionPhase.AFTER_SUCCESS) StoreCreatedEvent event) {
+      legacyStoreManagerGateway.createStoreOnLegacySystem(event.store());
+  }
+  ```
+* Guarantees zero phantom records or data discrepancies if a database commit fails or rolls back.
 
 ---
 
-## Prerequisites & Environment Setup
+## 📊 Code Coverage & Quality Gate Tracking
 
-- **Java Development Kit (JDK):** Version 17, 21, or 25.
-- **Maven:** 3.8+ (or use the included `./mvnw` / `.\mvnw.cmd` wrapper).
-- **Database:**
-  - **For Tests:** Automated in-memory H2 (Postgres-compatibility mode) configured for test profile (`%test.quarkus.datasource.db-kind=h2`). Tests run standalone with zero external dependencies.
-  - **For Production:** PostgreSQL 13+ (or Docker container).
+| Package | Lines Total | Lines Covered | Lines Missed | Line Coverage (%) | Layer Responsibility |
+| :--- | :---: | :---: | :---: | :---: | :--- |
+| `fulfillment.domain.usecases` | 43 | 42 | 1 | **97.7%** | Hexagonal Inbound Use Cases |
+| `fulfillment.adapters.database` | 37 | 35 | 2 | **94.6%** | Panache Persistence Adapter |
+| `stores` | 91 | 86 | 5 | **94.5%** | Store Resource & CDI Events |
+| `location` | 17 | 16 | 1 | **94.1%** | Location Gateway (Prefix Match) |
+| `warehouses.adapters.database` | 67 | 61 | 6 | **91.0%** | Warehouse Repository Adapter |
+| `fulfillment.domain.models` | 9 | 8 | 1 | **88.9%** | Pure Domain Model |
+| `fulfillment` (Service Facade) | 9 | 8 | 1 | **88.9%** | Backward-Compatible Facade |
+| `warehouses.domain.usecases` | 52 | 45 | 7 | **86.5%** | Warehouse Use Cases |
+| `warehouses.domain.validator` | 67 | 56 | 11 | **83.6%** | Dedicated Domain Validator |
+| `fulfillment.validator` | 39 | 33 | 6 | **84.6%** | Dedicated Supply Chain Validator |
+| `warehouses.adapters.restapi` | 62 | 52 | 10 | **83.9%** | OpenAPI JAX-RS Resource Adapter |
+| `fulfillment.adapters.restapi` | 31 | 25 | 6 | **80.6%** | Fulfillment REST Resource Adapter |
+| `warehouses.domain.models` | 12 | 12 | 0 | **100.0%** | Pure Domain POJOs |
+| `fulfillment.events` | 14 | 14 | 0 | **100.0%** | CDI Event Definitions & Observers |
+| `com.warehouse.api.beans` | 16 | 16 | 0 | **100.0%** | Generated OpenAPI Beans |
+| `products` | 43 | 29 | 14 | **67.4%** | Product Active Record Entities |
+| **TOTAL PROJECT SUITE** | **609** | **534** | **75** | **87.68%** | **GATED AT > 80.00%** |
+
+* Interactive JaCoCo HTML report is preserved at [`coverage-report/html/index.html`](coverage-report/html/index.html).
+* Detailed coverage tracking documentation is available at [`coverage-report/INDEX.md`](coverage-report/INDEX.md).
 
 ---
 
-## Building, Testing & Code Coverage
+## 🚀 Quick Start & Verification
 
-All commands should be executed from the `java-assignment` directory:
+### Prerequisites
+* **Java 17+** (JDK 17, 21, or 25)
+* **Maven 3.8+** (or use included `./mvnw`)
 
+### 1. Run All Tests and Verify Coverage Gate (>80%)
 ```bash
 cd java-assignment
+./mvnw clean test jacoco:check jacoco:report
 ```
 
-### 1. Compile & Build
-```bash
-./mvnw clean compile
+**Expected Result:**
+```
+[INFO] Tests run: 141, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Analyzed bundle 'java-code-assignment' with 37 classes
+[INFO] All coverage checks have been met.
+[INFO] BUILD SUCCESS
 ```
 
-### 2. Run All Tests & Enforce 80% JaCoCo Coverage
+### 2. Start Application in Development Mode
+Dev mode uses an embedded in-memory H2 database with automatic schema generation and sample data from `import.sql`:
 ```bash
-./mvnw clean test jacoco:check
-```
-
-### 3. Package Application JAR
-```bash
-./mvnw package -DskipTests
-```
-
-### 4. Run Application Locally
-```bash
-# In Quarkus Development Mode (with Live Reload):
 ./mvnw quarkus:dev
-
-# Or run conventional JAR (requires PostgreSQL or Docker):
-java -jar ./target/quarkus-app/quarkus-run.jar
 ```
-
-### 5. Test Suite & Coverage Metrics
-- **Total Tests:** 94 passed, 0 failures, 0 errors.
-- **JaCoCo Line Coverage:** **85.77%** (Exceeds the 80% requirement).
-- JaCoCo HTML report generated at: `java-assignment/target/jacoco-report/index.html`.
-- JaCoCo CSV report generated at: `java-assignment/target/jacoco-report/jacoco.csv`.
+* **Swagger UI:** [http://localhost:8080/q/swagger-ui](http://localhost:8080/q/swagger-ui)
+* **OpenAPI Spec:** [http://localhost:8080/q/openapi](http://localhost:8080/q/openapi)
+* **Quarkus Dev UI:** [http://localhost:8080/q/dev](http://localhost:8080/q/dev)
 
 ---
 
-## CI/CD Pipeline
-
-The GitHub Actions workflow is located at [`.github/workflows/ci.yml`](.github/workflows/ci.yml).
-
-### Pipeline Stages:
-1. **Checkout Code:** Fetches repository code.
-2. **Set up JDK 17:** Configures Eclipse Temurin OpenJDK 17 with Maven caching.
-3. **Execute Test Suite & Quality Gate:** Runs `./mvnw clean test jacoco:check`. If line coverage drops below **80%**, the pipeline fails automatically.
-4. **Package Verification:** Validates packaging with `./mvnw package -DskipTests`.
-5. **Publish Step Summary:** Formats and prints JaCoCo line and instruction coverage directly into the GitHub Actions run summary.
-6. **Artifact Archiving:** Uploads test reports (`surefire-reports`) and JaCoCo coverage reports as downloadable workflow artifacts (retained for 14 days).
-
----
-
-## API Documentation & Endpoints
+## 📡 REST API Reference & cURL Examples
 
 ### 1. Warehouse Management (`/warehouse`)
-Defined by OpenAPI 3.0 specification (`src/main/resources/warehouse-openapi.yaml`):
-
 | Method | Endpoint | Description | Status Codes |
 | :--- | :--- | :--- | :--- |
-| `GET` | `/warehouse` | Retrieve all active warehouses | `200 OK` |
-| `POST` | `/warehouse` | Create a new warehouse with location and capacity validations | `201 Created`, `400 Bad Request` |
-| `GET` | `/warehouse/{businessUnitCode}` | Retrieve active warehouse by Business Unit Code | `200 OK`, `404 Not Found` |
-| `DELETE` | `/warehouse/{businessUnitCode}` | Archive warehouse by Business Unit Code | `204 No Content`, `404 Not Found` |
-| `POST` | `/warehouse/replacement` | Replace active warehouse, archiving old and creating replacement with same BU code | `201 Created`, `400 Bad Request`, `404 Not Found` |
+| `GET` | `/warehouse` | List all active warehouses | `200 OK` |
+| `POST` | `/warehouse` | Create a new warehouse | `201 Created`, `400 Bad Request` |
+| `GET` | `/warehouse/{buCode}` | Get warehouse details | `200 OK`, `404 Not Found` |
+| `PUT` | `/warehouse/{buCode}` | Replace existing warehouse | `200 OK`, `400 Bad Request`, `404 Not Found` |
+| `DELETE`| `/warehouse/{buCode}` | Archive (soft-delete) warehouse | `204 No Content`, `404 Not Found` |
 
-### 2. Store Management (`/store`)
+```bash
+# Create Warehouse
+curl -X POST http://localhost:8080/warehouse \
+  -H "Content-Type: application/json" \
+  -d '{"businessUnitCode":"MWH.001","location":"ZWOLLE-001","capacity":40,"stock":10}'
+
+# Replace Warehouse
+curl -X PUT http://localhost:8080/warehouse/MWH.001 \
+  -H "Content-Type: application/json" \
+  -d '{"businessUnitCode":"MWH.001","location":"ZWOLLE-001","capacity":45,"stock":10}'
+
+# Archive Warehouse
+curl -X DELETE http://localhost:8080/warehouse/MWH.001
+```
+
+### 2. Fulfillment Association (`/fulfillment`)
 | Method | Endpoint | Description | Status Codes |
 | :--- | :--- | :--- | :--- |
-| `GET` | `/store` | List all stores | `200 OK` |
-| `POST` | `/store` | Create store (triggers post-commit sync) | `201 Created` |
-| `PATCH` | `/store/{id}` | Update store (triggers post-commit sync) | `200 OK`, `404 Not Found` |
+| `POST` | `/fulfillment/associate` | Associate Product, Store, and Warehouse | `201 Created`, `400 Bad Request`, `404 Not Found` |
+| `POST` | `/fulfillment/disassociate` | Disassociate fulfillment link | `204 No Content`, `404 Not Found` |
+| `GET` | `/fulfillment/store/{storeId}` | Query associations for a store | `200 OK` |
+| `GET` | `/fulfillment/warehouse/{buCode}` | Query associations for a warehouse | `200 OK` |
 
-### 3. Product Management (`/product`)
-| Method | Endpoint | Description | Status Codes |
-| :--- | :--- | :--- | :--- |
-| `GET` | `/product` | List all products | `200 OK` |
-| `POST` | `/product` | Create a product | `201 Created` |
-| `PUT` | `/product/{id}` | Update a product | `200 OK`, `404 Not Found` |
-| `DELETE` | `/product/{id}` | Delete a product | `204 No Content`, `404 Not Found` |
+```bash
+# Associate Product 1 to Store 1 fulfilled by MWH.001
+curl -X POST http://localhost:8080/fulfillment/associate \
+  -H "Content-Type: application/json" \
+  -d '{"storeId":1,"productId":1,"warehouseBusinessUnitCode":"MWH.001"}'
 
-### 4. Fulfillment Unit Associations (`/fulfillment` - BONUS)
-| Method | Endpoint | Description | Status Codes |
-| :--- | :--- | :--- | :--- |
-| `POST` | `/fulfillment/associate` | Associate warehouse as fulfillment unit for a product and store | `200 OK`, `400 Bad Request` |
-| `POST` | `/fulfillment/disassociate`| Remove fulfillment association | `204 No Content`, `404 Not Found` |
-| `GET` | `/fulfillment/store/{storeId}`| Get active warehouses fulfilling a store | `200 OK` |
-| `GET` | `/fulfillment/warehouse/{buCode}`| Get product types stored in a warehouse | `200 OK` |
+# Query Store Associations
+curl http://localhost:8080/fulfillment/store/1
 
-#### Fulfillment Association Constraints Enforced:
-1. **Rule 1:** Each product can be fulfilled by a maximum of **2 different warehouses** per store.
-2. **Rule 2:** Each store can be fulfilled by a maximum of **3 different warehouses**.
-3. **Rule 3:** Each warehouse can store maximally **5 distinct types of products**.
+# Disassociate
+curl -X POST http://localhost:8080/fulfillment/disassociate \
+  -H "Content-Type: application/json" \
+  -d '{"storeId":1,"productId":1,"warehouseBusinessUnitCode":"MWH.001"}'
+```
 
 ---
 
-## Case Study & Architectural Analysis
+## 📝 Written Deliverables & Architectural Analysis
 
-For in-depth explanations, architectural trade-offs, and strategic considerations, refer to:
-- [`java-assignment/QUESTIONS.md`](java-assignment/QUESTIONS.md): Detailed analysis on Database Access Patterns, Spec-First vs Code-First API design, and Testing Strategies.
-- [`case-study/CASE_STUDY.md`](case-study/CASE_STUDY.md): Strategic analysis of the 5 fulfillment scenarios:
-  1. *Cost Allocation and Tracking (Activity-Based Costing & Telemetry)*
-  2. *Cost Optimization Strategies (Inventory Placement, Multi-modal Routing)*
-  3. *Financial Systems Integration (Transactional Outbox, Event Streams, Reconciliation)*
-  4. *Budgeting and Forecasting (Driver-based models & location capacity limits)*
-  5. *Cost Control in Warehouse Replacement (Archiving cost history, BU code continuity)*
+1. **Strategic Cost Control Case Study**: [`case-study/CASE_STUDY.md`](case-study/CASE_STUDY.md)
+   * Scenario 1: Activity-Based Costing (ABC) and Event-Driven Telemetry via Kafka.
+   * Scenario 2: High-velocity SKU placement and carrier routing optimization.
+   * Scenario 3: Financial ERP Integration via Transactional Outbox Pattern & Debezium CDC.
+   * Scenario 4: Predictive Budgeting, seasonal variance, and location saturation models.
+   * Scenario 5: Warehouse Replacement Cost Continuity and asset depreciation tracking.
+
+2. **Architectural Trade-offs & Q&A**: [`java-assignment/QUESTIONS.md`](java-assignment/QUESTIONS.md)
+   * Panache Active Record vs Repository vs Hexagonal Ports & Adapters comparison.
+   * OpenAPI Contract-First vs Code-First trade-offs and team velocity impacts.
+   * Testing pyramid strategy and enterprise quality gate automation.
+
+3. **Interview Quick Reference**: [`INTERVIEW_PREP_CHEATSHEET.md`](../../INTERVIEW_PREP_CHEATSHEET.md)
+   * 30-second elevator pitch, task-by-task Q&As, and architecture defense talking points.
+
+---
+
+## 👨‍💻 Candidate
+* **Name:** Pankaj Sharma
+* **Repository:** [https://github.com/pankajsharma21/fcs-interview-code-assignment-main](https://github.com/pankajsharma21/fcs-interview-code-assignment-main)

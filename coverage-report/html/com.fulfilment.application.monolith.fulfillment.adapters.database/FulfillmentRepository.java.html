@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>FulfillmentRepository.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">java-code-assignment</a> &gt; <a href="index.source.html" class="el_package">com.fulfilment.application.monolith.fulfillment.adapters.database</a> &gt; <span class="el_source">FulfillmentRepository.java</span></div><h1>FulfillmentRepository.java</h1><pre class="source lang-java linenums">package com.fulfilment.application.monolith.fulfillment.adapters.database;
+
+import com.fulfilment.application.monolith.fulfillment.domain.models.FulfillmentAssociation;
+import com.fulfilment.application.monolith.fulfillment.domain.ports.FulfillmentStore;
+import io.quarkus.hibernate.orm.panache.PanacheRepository;
+import jakarta.enterprise.context.ApplicationScoped;
+import java.util.List;
+import java.util.stream.Collectors;
+
+/**
+ * Persistence adapter implementing the outbound FulfillmentStore port using Hibernate Panache.
+ */
+@ApplicationScoped
+<span class="fc" id="L14">public class FulfillmentRepository</span>
+    implements FulfillmentStore, PanacheRepository&lt;DbFulfillmentAssociation&gt; {
+
+  @Override
+  public FulfillmentAssociation save(FulfillmentAssociation association) {
+<span class="fc" id="L19">    DbFulfillmentAssociation entity =</span>
+        new DbFulfillmentAssociation(
+            association.storeId, association.productId, association.warehouseBusinessUnitCode);
+<span class="fc" id="L22">    persist(entity);</span>
+<span class="fc" id="L23">    association.id = entity.id;</span>
+<span class="fc" id="L24">    return association;</span>
+  }
+
+  @Override
+  public boolean delete(Long storeId, Long productId, String warehouseBusinessUnitCode) {
+<span class="fc" id="L29">    long deleted =</span>
+<span class="fc" id="L30">        delete(</span>
+            &quot;storeId = ?1 and productId = ?2 and warehouseBusinessUnitCode = ?3&quot;,
+            storeId,
+            productId,
+            warehouseBusinessUnitCode);
+<span class="fc bfc" id="L35" title="All 2 branches covered.">    return deleted &gt; 0;</span>
+  }
+
+  @Override
+  public FulfillmentAssociation findSpecific(
+      Long storeId, Long productId, String warehouseBusinessUnitCode) {
+<span class="fc" id="L41">    DbFulfillmentAssociation entity =</span>
+<span class="fc" id="L42">        find(</span>
+                &quot;storeId = ?1 and productId = ?2 and warehouseBusinessUnitCode = ?3&quot;,
+                storeId,
+                productId,
+                warehouseBusinessUnitCode)
+<span class="fc" id="L47">            .firstResult();</span>
+<span class="pc bpc" id="L48" title="1 of 2 branches missed.">    return entity != null ? toDomain(entity) : null;</span>
+  }
+
+  @Override
+  public List&lt;FulfillmentAssociation&gt; findByStore(Long storeId) {
+<span class="fc" id="L53">    return list(&quot;storeId&quot;, storeId).stream().map(this::toDomain).collect(Collectors.toList());</span>
+  }
+
+  @Override
+  public List&lt;FulfillmentAssociation&gt; findByWarehouse(String warehouseBusinessUnitCode) {
+<span class="fc" id="L58">    return list(&quot;warehouseBusinessUnitCode&quot;, warehouseBusinessUnitCode).stream()</span>
+<span class="fc" id="L59">        .map(this::toDomain)</span>
+<span class="fc" id="L60">        .collect(Collectors.toList());</span>
+  }
+
+  @Override
+  public List&lt;FulfillmentAssociation&gt; findByProductAndStore(Long productId, Long storeId) {
+<span class="fc" id="L65">    return list(&quot;productId = ?1 and storeId = ?2&quot;, productId, storeId).stream()</span>
+<span class="fc" id="L66">        .map(this::toDomain)</span>
+<span class="fc" id="L67">        .collect(Collectors.toList());</span>
+  }
+
+  @Override
+  public long deleteAll() {
+<span class="fc" id="L72">    return delete(&quot;1=1&quot;);</span>
+  }
+
+  private FulfillmentAssociation toDomain(DbFulfillmentAssociation entity) {
+<span class="fc" id="L76">    return new FulfillmentAssociation(</span>
+        entity.id, entity.storeId, entity.productId, entity.warehouseBusinessUnitCode);
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
